@@ -1,0 +1,54 @@
+{
+  "name": "alinex-webobjects",
+  "version": "0.0.0",
+  "description": "Object management through web interface.",
+  "copyright": "Alexander Schilling 2017",
+  "keywords": [],
+  "homepage": "http://alinex.github.io/node-webobjects/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alinex/node-webobjects"
+  },
+  "bugs": "https://github.com/alinex/node-webobjects/issues",
+  "author": {
+    "name": "Alexander Schilling",
+    "email": "info@alinex.de",
+    "url": "http://alinex.de"
+  },
+  "contributors": [],
+  "license": "Apache-2.0",
+  "bin": {
+    "webobjects": "./bin/webobjects"
+  },
+  "man": "./man/webobjects.1",
+  "main": "./lib/index.js",
+  "scripts": {
+    "prepublish": "node_modules/.bin/builder compile",
+    "test": "node_modules/.bin/builder test -vvv"
+  },
+  "bin": {},
+  "scripts": {
+    "prepublish": "node_modules/.bin/builder compile --uglify",
+    "test": "node_modules/.bin/builder test"
+  },
+  "directories": {
+    "bin": "./bin",
+    "lib": "./lib",
+    "man": "./man"
+  },
+  "dependencies": {
+    "alinex-util": "^2.0.3",
+    "chalk": "^1.1.3",
+    "debug": "^2.2.0"
+  },
+  "devDependencies": {
+    "alinex-builder": "^2.0.0",
+    "chai": "^3.5.0"
+  },
+  "optionalDependencies": {},
+  "peerDependencies": {},
+  "engines": {
+    "node": ">=4"
+  },
+  "os": []
+}
