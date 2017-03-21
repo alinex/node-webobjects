@@ -13,6 +13,7 @@ path = require 'path'
 fs = require 'alinex-fs'
 alinex = require 'alinex-core'
 util = require 'alinex-util'
+config = require 'alinex-config'
 # include classes and helpers
 webobjects = require './index'
 
@@ -96,4 +97,6 @@ webobjects.setup (err) ->
   argv = yargs.argv
   # check for correct call
   console.log chalk.grey "Starting server..."
-  webobjects.start()
+  config.init (err) ->
+    throw cb err if err
+    webobjects.start()

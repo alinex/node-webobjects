@@ -18,6 +18,8 @@ compression = require 'compression'
 config = require 'alinex-config'
 Database = require 'alinex-database'
 Exec = require 'alinex-exec'
+# internal methods
+schema = require './configSchema'
 
 
 # Initialize
@@ -27,6 +29,9 @@ exports.setup = (cb) ->
     mod.setup cb
   , (err) ->
     return cb err if err
+    # add schema for module's configuration
+    config.setSchema '/server', schema.server
+    config.setSchema '/webobjects', schema.webobjects
     # set module search path
     config.register 'webobjects', path.dirname __dirname
     cb()
@@ -43,8 +48,9 @@ exports.start = (cb = ->) ->
   app.use clientErrorHandler
   app.use errorHandler
   # start
-  app.listen 3000, ->
-    console.log 'Example app listening on port 3000!'
+  server = config.get '/server/http'
+  app.listen server.port, ->
+    console.log "Example app listening on port #{server.port}!"
     cb()
 
 
