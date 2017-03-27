@@ -98,5 +98,5 @@ webobjects.setup (err) ->
   # check for correct call
   console.log chalk.grey "Starting server..."
   config.init (err) ->
-    throw cb err if err
+    throw err if err
     webobjects.start()

@@ -27,4 +27,3 @@ exports.webobjects =
   title: "Webobjects Setup"
   description: "the configuration for the database report system"
   type: 'object'
-  allowedKeys: true

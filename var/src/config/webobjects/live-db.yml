@@ -1,0 +1,24 @@
+# Klassendefinitionen
+# ==========================================================
+
+mng_media_version:
+  title: Media Version (live db)
+  description:
+    Jedes Format eines Titels hat hier eine eigene Media Version.
+  database:
+    connection: dvb_manage_live
+    get: SELECT * FROM mng_media_version WHERE version_id=?
+    search: SELECT * FROM mng_media_version WHERE name ilike ?
+  id: version_id
+  references:
+    title_id: mng_title
+
+mng_title:
+  title: Title (live db)
+  database:
+    connection: dvb_manage_live
+    get: SELECT * FROM mng_title WHERE title_id=?
+    search: SELECT * FROM mng_title WHERE name ilike ?
+  id: version_id
+  references:
+    title_id: mng_title
