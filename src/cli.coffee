@@ -97,6 +97,6 @@ webobjects.setup (err) ->
   argv = yargs.argv
   # check for correct call
   console.log chalk.grey "Starting server..."
-  config.init (err) ->
+  webobjects.init (err) ->
     throw err if err
     webobjects.start()
