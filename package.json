@@ -1,6 +1,6 @@
 {
   "name": "alinex-webobjects",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Display and navigate through objects in a web interface which knows about the data structure behind.",
   "copyright": "Alexander Schilling 2017",
   "keywords": [],
