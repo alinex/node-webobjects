@@ -10,7 +10,6 @@
 # include base modules
 debug = require('debug') 'webobjects:data'
 chalk = require 'chalk'
-util = require 'util'
 # include alinex modules
 Database = require 'alinex-database'
 validator = require 'alinex-validator'
@@ -54,7 +53,11 @@ readDatabase = (setup, work, cb) ->
     switch typeof params
       when 'number' then params
       else "'#{params.replace /'/g, "''"}'"
-  query = conf.query.replace '?', params
+  query = conf.query.trim().replace '?', params
+  work.code =
+    data: query
+    language: 'sql'
+    title: setup.connection.toString()
   Database.list setup.connection, query, (err, list) ->
     return cb err if err
     work.data = (new Table()).fromRecordObject list
@@ -83,7 +86,10 @@ exports.reference = (setup, work, cb) ->
       for row in [1..raw.length-1]
         ref = conf.filter (r) ->
           # self referencing only in list
-          work.result isnt 'record' or r.object
+          object = r.object ? work.object
+          object = "#{work.group}/#{object}" unless ~object.indexOf '/'
+          object += "/#{r.search}/#{raw[row][col]}"
+          "#{work.group}/#{work.object}/#{work.search}/#{work.values}" isnt object
         .map (r) ->
           object = r.object ? work.object
           object = "#{work.group}/#{object}" unless ~object.indexOf '/'
@@ -93,9 +99,16 @@ exports.reference = (setup, work, cb) ->
         raw[row][col] += "<br />#{ref}"
   cb()
 
-exports.flip = (setup, work, cb) ->
-  return cb() unless work.result is 'record'
-  work.data.flip()
-  work.data.columns {'Property': true, 'Value': true}
-  work.data.filter 'Value not null'
+exports.output = (setup, work, cb) ->
+  if work.result is 'record'
+    work.data.flip()
+    work.data.columns {'Property': true, 'Value': true}
+    work.data.filter 'Value not null'
+  if work.data.data.length > 1
+    work.report.table work.data, true
+  else
+    work.report.box true, 'warning'
+    work.report.h3 'No records found!'
+    work.report.box false
+    work.report.p "You may correct your query parameters in the path."
   cb()

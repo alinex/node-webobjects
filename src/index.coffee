@@ -68,6 +68,11 @@ exports.start = (cb = ->) ->
       report = new Report()
       report.h1 "Alinex WebObjects Version #{pack.version}"
       report.p pack.description
+      report.markdown """
+      This tool won't replace any querying tool like SQL applications... But it will
+      give you an alternative way to step through your data and discover things on
+      an interactive way through the data jungle.
+      """
       table = []
       for search, conf of setup
         table.push [
@@ -82,19 +87,25 @@ exports.start = (cb = ->) ->
 
   # group information
   app.get '/:group', (req, res) ->
+    throw new Error "Call not supported." if req.params.group in ['favicon.ico']
     setup = config.get "/webobjects/#{req.params.group}"
     debugAccess "INFO #{req.params.group}"
     report = new Report()
     report.h1 "Group: #{req.params.group}"
-    table = []
-    for search, conf of setup
-      table.push [
-        "**#{conf.title}**"
-        conf.type
-        "`/#{req.params.group}/#{search}`"
-        "[Information](/#{req.params.group}/#{search})"
-      ]
-    report.table table, ["Object", 'Resource', 'URL', 'Action'], null, true
+    unless setup
+      debugAccess chalk.magenta "unknown group #{req.params.group}"
+      report.box "This group is not defined!", 'alert'
+      report.markdown "See the [list of groups](/) to use the correct one."
+    else
+      table = []
+      for search, conf of setup
+        table.push [
+          "**#{conf.title}**"
+          conf.type
+          "`/#{req.params.group}/#{search}`"
+          "[Information](/#{req.params.group}/#{search})"
+        ]
+      report.table table, ["Object", 'Resource', 'URL', 'Action'], null, true
     report.format 'html', (err, html) ->
       res.send html
 
@@ -103,17 +114,24 @@ exports.start = (cb = ->) ->
     setup = config.get "/webobjects/#{req.params.group}/#{req.params.class}"
     debugAccess "INFO #{req.params.group}/#{req.params.class}"
     report = new Report()
-    report.h1 "#{setup.title}"
-    report.p setup.description if setup.description
-    table = []
-    for search, conf of setup.get
-      table.push [
-        "**#{conf.title}**"
-        "`/#{req.params.group}/#{req.params.class}/#{search}/...`"
-        conf.params.title
-        "[Information](/#{req.params.group}/#{req.params.class}/#{search})"
-      ]
-    report.table table, ["Access method", 'URL', 'Parameter', 'Action'], null, true
+    unless setup
+      debugAccess chalk.magenta "Unknown object #{req.params.group}/#{req.params.class}"
+      report.h1 "Object: #{req.params.group}/#{req.params.class}"
+      report.box "This object is not defined!", 'alert'
+      report.markdown "See the [list of objects](/#{req.params.group}) in #{req.params.group}
+      or the [list of groups](/) to use the correct one."
+    else
+      report.h1 "#{setup.title}"
+      report.p setup.description if setup.description
+      table = []
+      for search, conf of setup.get
+        table.push [
+          "**#{conf.title}**"
+          "`/#{req.params.group}/#{req.params.class}/#{search}/...`"
+          conf.params.title
+          "[Information](/#{req.params.group}/#{req.params.class}/#{search})"
+        ]
+      report.table table, ["Access method", 'URL', 'Parameter', 'Action'], null, true
     report.format 'html', (err, html) ->
       res.send html
 
@@ -122,6 +140,21 @@ exports.start = (cb = ->) ->
     setup = config.get "/webobjects/#{req.params.group}/#{req.params.class}"
     debugAccess "INFO #{req.params.group}/#{req.params.class}/#{req.params.search}"
     report = new Report()
+    unless setup
+      debugAccess chalk.magenta "Unknown object #{req.params.group}/#{req.params.class}"
+      report.h1 "Object: #{req.params.group}/#{req.params.class}"
+      report.box "This object is not defined!", 'alert'
+      report.markdown "See the [list of objects](/#{req.params.group}) in #{req.params.group}
+      or the [list of groups](/) to use the correct one."
+      return report.format 'html', (err, html) -> res.send html
+    unless setup.get?[req.params.search]
+      debugAccess chalk.magenta "Unknown search method #{req.params.group}/#{req.params.class}\
+      /#{req.params.search}"
+      report.h1 "#{setup.title}: Access by #{req.params.search}"
+      report.box "This search method is not defined!", 'alert'
+      report.markdown "See the [list of methods](/#{req.params.group}/#{req.params.class})
+      to use the correct one."
+      return report.format 'html', (err, html) -> res.send html
     report.h1 "#{setup.title}: #{setup.get[req.params.search].title}"
     report.p setup.get[req.params.search].description if setup.get[req.params.search].description
     report.box true, 'info'
@@ -142,6 +175,22 @@ exports.start = (cb = ->) ->
     setup = config.get "/webobjects/#{req.params.group}/#{req.params.object}"
     debugAccess "GET  #{req.params.group}/#{req.params.object}/#{req.params.search}
     = #{req.params.values}"
+    report = new Report()
+    unless setup
+      debugAccess chalk.magenta "Unknown object #{req.params.group}/#{req.params.class}"
+      report.h1 "Object: #{req.params.group}/#{req.params.class}"
+      report.box "This object is not defined!", 'alert'
+      report.markdown "See the [list of objects](/#{req.params.group}) in #{req.params.group}
+      or the [list of groups](/) to use the correct one."
+      return report.format 'html', (err, html) -> res.send html
+    unless setup.get?[req.params.search]
+      debugAccess chalk.magenta "Unknown search method #{req.params.group}/#{req.params.class}\
+      /#{req.params.search}"
+      report.h1 "#{setup.title}: Access by #{req.params.search}"
+      report.box "This search method is not defined!", 'alert'
+      report.markdown "See the [list of methods](/#{req.params.group}/#{req.params.class})
+      to use the correct one."
+      return report.format 'html', (err, html) -> res.send html
     work =
       group: req.params.group
       object: req.params.object
@@ -149,25 +198,28 @@ exports.start = (cb = ->) ->
       values: req.params.values
       result: null # list or record
       data: null # dataset
+      report: report
+      code: null
     try
+      report.h1 setup.title
+      report.markdown "> Search for: #{setup.get[work.search].title}
+      using `#{req.params.values}`"
       async.series [
         (cb) -> provider.read setup, work, cb
         (cb) -> provider.format setup, work, cb
         (cb) -> provider.reference setup, work, cb
-        (cb) -> provider.flip setup, work, cb
+        (cb) -> provider.output setup, work, cb
       ], (err) ->
         throw err if err
-        report = new Report()
-        report.h1 "#{setup.title}: #{setup.get[work.search].title}"
         report.p setup.description if setup.description
-        if work.data.data.length > 1
-          report.table work.data, true
-        else
-          report.box true, 'warning'
-          report.h3 'No records found!'
+        if work.code
+          report.hr()
+          report.p "The result was retrieved using:"
+          report.box true, 'info', work.code.title
+          report.code work.code.data, work.code.language
           report.box false
-          report.p "You may correct your query parameters in the path."
         report.format 'html', (err, html) -> res.send html
+
     catch error
       report = new Report()
       report.h1 "#{setup.title}: Access Failure"
