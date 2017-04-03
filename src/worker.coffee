@@ -43,7 +43,7 @@ class Worker
       name: 'params'
       value: @values
       schema: conf.params
-    , (err, res) ->
+    , (err, res) =>
       @values = res
       if err
         debug chalk.red "    failed with: #{err.message}"
@@ -60,7 +60,7 @@ class Worker
       catch error
         cb new Error "Provider type '#{@setup.type}' is not possible to read from."
 
-  format: (worker, cb) ->
+  format: (cb) ->
     return cb() unless @setup.data
     return cb() unless @result not in ['list', 'record']
     @data.format @setup.data.format if @setup.data.format
@@ -71,7 +71,7 @@ class Worker
       @data.unique()
     cb()
 
-  reference: (worker, cb) ->
+  reference: (cb) ->
     return cb() unless @setup.reference
     col = -1
     for field of @data.row 0
@@ -80,13 +80,13 @@ class Worker
         # add reference
         raw = @data.data
         for row in [1..raw.length-1]
-          ref = conf.filter (r) ->
+          ref = conf.filter (r) =>
             # self referencing only in list
             object = r.object ? @object
             object = "#{@group}/#{object}" unless ~object.indexOf '/'
             object += "/#{r.search}/#{raw[row][col]}"
             "#{@group}/#{@object}/#{@search}/#{@values}" isnt object
-          .map (r) ->
+          .map (r) =>
             object = r.object ? @object
             object = "#{@group}/#{object}" unless ~object.indexOf '/'
             "<a href=\"/#{object}/#{r.search}/#{raw[row][col]}\">#{r.title}</a>"
@@ -95,7 +95,7 @@ class Worker
           raw[row][col] += "<br />#{ref}"
     cb()
 
-  output: (worker, cb) ->
+  output: (cb) ->
     if @result is 'record'
       @data.flip()
       @data.columns {'Property': true, 'Value': true}

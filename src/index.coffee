@@ -137,6 +137,9 @@ exports.start = (cb = ->) ->
 
   # access object by identification
   app.get '/:group/:class/:search', (req, res) ->
+    if req.query?.values
+      return res.redirect 301, "/#{req.params.group}/#{req.params.class}/#{req.params.search}\
+      /#{req.query.values}"
     setup = config.get "/webobjects/#{req.params.group}/#{req.params.class}"
     debugAccess "INFO #{req.params.group}/#{req.params.class}/#{req.params.search}"
     report = new Report()
