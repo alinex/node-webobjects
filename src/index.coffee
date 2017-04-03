@@ -28,7 +28,7 @@ Report = require 'alinex-report'
 validator = require 'alinex-validator'
 # internal methods
 schema = require './configSchema'
-provider = require './provider'
+Worker = require './worker'
 
 
 # Initialize
@@ -191,32 +191,30 @@ exports.start = (cb = ->) ->
       report.markdown "See the [list of methods](/#{req.params.group}/#{req.params.class})
       to use the correct one."
       return report.format 'html', (err, html) -> res.send html
-    work =
+    worker = new Worker
+      setup: setup
       group: req.params.group
       object: req.params.object
       search: req.params.search
       values: req.params.values
-      result: null # list or record
-      data: null # dataset
       report: report
-      code: null
     try
       report.h1 setup.title
-      report.markdown "> Search for: #{setup.get[work.search].title}
+      report.markdown "> Search for: #{setup.get[req.params.search].title}
       using `#{req.params.values}`"
       async.series [
-        (cb) -> provider.read setup, work, cb
-        (cb) -> provider.format setup, work, cb
-        (cb) -> provider.reference setup, work, cb
-        (cb) -> provider.output setup, work, cb
+        (cb) -> worker.read cb
+        (cb) -> worker.format cb
+        (cb) -> worker.reference cb
+        (cb) -> worker.output cb
       ], (err) ->
         throw err if err
         report.p setup.description if setup.description
-        if work.code
+        if worker.code
           report.hr()
           report.p "The result was retrieved using:"
-          report.box true, 'info', work.code.title
-          report.code work.code.data, work.code.language
+          report.box true, 'info', worker.code.title
+          report.code worker.code.data, worker.code.language
           report.box false
         report.format 'html', (err, html) -> res.send html
 

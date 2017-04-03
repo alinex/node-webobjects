@@ -5,6 +5,8 @@
 format:
   html:
     body_begin: <body>
-    body_end: </body>
+    body_end: |+
+      <div id="footer"><a href="/">WebObjects</a> Version 0.1 by <em>Alexander Schilling</em></div>
+      </body>
     style:
       - webobjects/default.css
