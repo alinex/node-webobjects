@@ -10,3 +10,4 @@ format:
       </body>
     style:
       - webobjects/default.css
+    compress: true
