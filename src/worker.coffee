@@ -58,7 +58,7 @@ class Worker
         provider = require "./provider/#{@setup.type}"
         provider.read this, cb
       catch error
-        cb new Error "Provider type '#{@setup.type}' is not possible to read from."
+        cb new Error "Provider type '#{@setup.type}' is not possible to read from (#{error.message})"
 
   format: (cb) ->
     return cb() unless @setup.data
@@ -80,19 +80,33 @@ class Worker
         # add reference
         raw = @data.data
         for row in [1..raw.length-1]
-          ref = conf.filter (r) =>
-            # self referencing only in list
+          if conf.length is 1
+            r = conf[0]
             object = r.object ? @object
             object = "#{@group}/#{object}" unless ~object.indexOf '/'
-            object += "/#{r.search}/#{raw[row][col]}"
-            "#{@group}/#{@object}/#{@search}/#{@values}" isnt object
-          .map (r) =>
+            raw[row][col] = "<a href=\"/#{object}/#{r.search}/#{raw[row][col]}\"
+            title=\"#{r.title}\">#{raw[row][col]}</a>"
+          else
+            num = 0
+            ref = conf.filter (r) =>
+              # self referencing only in list
+              object = r.object ? @object
+              object = "#{@group}/#{object}" unless ~object.indexOf '/'
+              object += "/#{r.search}/#{raw[row][col]}"
+              "#{@group}/#{@object}/#{@search}/#{@values}" isnt object
+            r = ref[0]
             object = r.object ? @object
             object = "#{@group}/#{object}" unless ~object.indexOf '/'
-            "<a href=\"/#{object}/#{r.search}/#{raw[row][col]}\">#{r.title}</a>"
-          .join ' / '
-          ref = "<span class=\"reference\">#{ref}</span>"
-          raw[row][col] += "<br />#{ref}"
+            firstRef = "<a href=\"/#{object}/#{r.search}/#{raw[row][col]}\"
+            title=\"#{r.title}\">#{raw[row][col]}</a>"
+            ref = ref[1..].map (r) =>
+              object = r.object ? @object
+              object = "#{@group}/#{object}" unless ~object.indexOf '/'
+              "<a href=\"/#{object}/#{r.search}/#{raw[row][col]}\">#{r.title}</a>"
+            .join ' / '
+            console.log ref
+            ref = "<span class=\"reference\">#{ref}</span>"
+            raw[row][col] = "#{firstRef}<br />#{ref}"
     cb()
 
   output: (cb) ->
@@ -100,13 +114,22 @@ class Worker
       @data.flip()
       @data.columns {'Property': true, 'Value': true}
       @data.filter 'Value not null'
-    if @data.data.length > 1
-      @report.table @data, true
-    else
-      @report.box true, 'warning'
-      @report.h3 'No records found!'
-      @report.box false
-      @report.p "You may correct your query parameters in the path."
+    switch @result
+      when 'record', 'list'
+        if @data.data.length > 1
+          @report.table @data, true
+        else
+          @report.box true, 'warning'
+          @report.h3 'No records found!'
+          @report.box false
+          @report.p "You may correct your query parameters in the path."
+      else
+        if @dataTitle
+          @report.box true, 'details', @dataTitle
+          @report.pre @data
+          @report.box false
+        else
+          @report.pre @data
     cb()
 
 

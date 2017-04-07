@@ -67,7 +67,7 @@ exports.start = (cb = ->) ->
       debugAccess "INFO /"
       report = new Report()
       report.h1 "Alinex WebObjects Version #{pack.version}"
-      report.p pack.description
+      report.markdown pack.description
       report.markdown """
       This tool won't replace any querying tool like SQL applications... But it will
       give you an alternative way to step through your data and discover things on
@@ -125,7 +125,7 @@ exports.start = (cb = ->) ->
       or the [list of groups](/) to use the correct one."
     else
       report.h1 "#{setup.title}"
-      report.p setup.description if setup.description
+      report.markdown setup.description if setup.description
       table = []
       for search, conf of setup.get
         table.push [
@@ -163,7 +163,7 @@ exports.start = (cb = ->) ->
       to use the correct one."
       return report.format 'html', (err, html) -> res.send html
     report.h1 "#{setup.title}: #{setup.get[req.params.search].title}"
-    report.p setup.get[req.params.search].description if setup.get[req.params.search].description
+    report.markdown setup.get[req.params.search].description if setup.get[req.params.search].description
     report.box true, 'info'
     report.raw """
       <form action="?">
@@ -228,7 +228,7 @@ exports.start = (cb = ->) ->
         report.format 'html', (err, html) -> res.send html
         debugAccess chalk.red "GET  #{req.params.group}/#{req.params.class} -> #{err.message}"
         return
-      report.p setup.description if setup.description
+      report.markdown setup.description if setup.description
       if worker.code
         report.hr()
         report.p "The result was retrieved using:"

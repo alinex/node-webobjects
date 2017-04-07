@@ -6,7 +6,8 @@
 # -------------------------------------------------
 
 # include alinex modules
-Database = require 'alinex-database'
+util = require 'alinex-util'
+Exec = require 'alinex-exec'
 Table = require 'alinex-table'
 
 
@@ -24,14 +25,23 @@ exports.read = (worker, cb) ->
       when 'number' then params
       else "'#{params.replace /'/g, "''"}'"
   # get data
-  query = conf.query.trim().replace '?', params
+  args = if conf.args
+    conf.args.map (e) -> e.replace '?', params
+  sum = if args
+    args.map((e) -> util.inspect e).join ' '
   worker.code =
-    data: query
-    language: 'sql'
-    title: worker.setup.connection.toString()
-  Database.list worker.setup.connection, query, (err, list) ->
+    data: "#{conf.cmd} #{sum ? ''}"
+    language: 'bash'
+    title: "#{conf.remote ? 'localhost'}"
+  Exec.run
+    remote: conf.remote
+    cmd: conf.cmd
+    args: args
+    check: conf.check
+  , (err, proc) ->
     return cb err if err
-    worker.data = (new Table()).fromRecordObject list
-    worker.data.unique()
-    worker.result = if list.length > 1 then 'list' else 'record'
+    worker.data = proc.stdout().trim()
+    worker.data = "No entries found." unless worker.data.length
+    worker.dataTitle = conf.result if conf.result
+    worker.result = 'text'
     cb()
