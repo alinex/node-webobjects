@@ -87,7 +87,10 @@ exports.start = (cb = ->) ->
 
   # group information
   app.get '/:group', (req, res) ->
-    throw new Error "Call not supported." if req.params.group in ['favicon.ico']
+    if req.params.group in ['favicon.ico', 'robots.txt']
+      res.status 404
+      .send {error: "No file available!"}
+      return
     setup = config.get "/webobjects/#{req.params.group}"
     debugAccess "INFO #{req.params.group}"
     report = new Report()
@@ -131,15 +134,16 @@ exports.start = (cb = ->) ->
           conf.params.title
           "[Information](/#{req.params.group}/#{req.params.class}/#{search})"
         ]
-      report.table table, ["Access method", 'URL', 'Parameter', 'Action'], null, true
+      report.table table, ["Access method", 'URL', 'Parameter', 'Info'], null, true
     report.format 'html', (err, html) ->
       res.send html
 
   # access object by identification
   app.get '/:group/:class/:search', (req, res) ->
     if req.query?.values
+      console.log encodeURI req.query.values
       return res.redirect 301, "/#{req.params.group}/#{req.params.class}/#{req.params.search}\
-      /#{req.query.values}"
+      /#{encodeURI req.query.values}"
     setup = config.get "/webobjects/#{req.params.group}/#{req.params.class}"
     debugAccess "INFO #{req.params.group}/#{req.params.class}/#{req.params.search}"
     report = new Report()
@@ -161,8 +165,12 @@ exports.start = (cb = ->) ->
     report.h1 "#{setup.title}: #{setup.get[req.params.search].title}"
     report.p setup.get[req.params.search].description if setup.get[req.params.search].description
     report.box true, 'info'
-    report.p true
-    report.text "URL: /#{req.params.group}/#{req.params.class}/#{req.params.search}/..."
+    report.raw """
+      <form action="?">
+      <p>URL: /#{req.params.group}/#{req.params.class}/#{req.params.search}/
+      <input type="text" name="values"></input>
+      </form>
+      """, 'html'
     report.box false
     report.h3 'Parameter:'
     validator.describe
@@ -201,35 +209,33 @@ exports.start = (cb = ->) ->
       search: req.params.search
       values: req.params.values
       report: report
-    try
-      report.h1 setup.title
-      report.markdown "> Search for: #{setup.get[req.params.search].title}
-      using `#{req.params.values}`"
-      async.series [
-        (cb) -> worker.read cb
-        (cb) -> worker.format cb
-        (cb) -> worker.reference cb
-        (cb) -> worker.output cb
-      ], (err) ->
-        throw err if err
-        report.p setup.description if setup.description
-        if worker.code
-          report.hr()
-          report.p "The result was retrieved using:"
-          report.box true, 'info', worker.code.title
-          report.code worker.code.data, worker.code.language
-          report.box false
+    report.h1 setup.title
+    report.markdown "> Search for: #{setup.get[req.params.search].title}
+    using `#{req.params.values}`"
+    async.series [
+      (cb) -> worker.read cb
+      (cb) -> worker.format cb
+      (cb) -> worker.reference cb
+      (cb) -> worker.output cb
+    ], (err) ->
+      if err
+        report = new Report()
+        report.h1 "#{setup.title}: Access Failure"
+        report.box true, 'alert'
+        report.markdown err.message
+        report.box false
+        report.pre err.stack
         report.format 'html', (err, html) -> res.send html
-
-    catch error
-      report = new Report()
-      report.h1 "#{setup.title}: Access Failure"
-      report.box true, 'alert'
-      report.markdown error.message
-      report.box false
-      report.pre error.stack
+        debugAccess chalk.red "GET  #{req.params.group}/#{req.params.class} -> #{err.message}"
+        return
+      report.p setup.description if setup.description
+      if worker.code
+        report.hr()
+        report.p "The result was retrieved using:"
+        report.box true, 'info', worker.code.title
+        report.code worker.code.data, worker.code.language
+        report.box false
       report.format 'html', (err, html) -> res.send html
-      debugAccess chalk.red "GET  #{req.params.group}/#{req.params.class} -> #{error.message}"
 
   # Failure processing
   app.use logErrors

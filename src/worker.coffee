@@ -46,7 +46,7 @@ class Worker
     , (err, res) =>
       @values = res
       if err
-        debug chalk.red "    failed with: #{err.message}"
+        debug chalk.red "failed with: #{err.message}"
         validator.describe
           name: 'params'
           schema: conf.params
@@ -62,7 +62,7 @@ class Worker
 
   format: (cb) ->
     return cb() unless @setup.data
-    return cb() unless @result not in ['list', 'record']
+    return cb() unless @result in ['list', 'record']
     @data.format @setup.data.format if @setup.data.format
     if conf = @setup.data.fields?[@result]
       map = {}
