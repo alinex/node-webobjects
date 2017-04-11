@@ -1,5 +1,0 @@
-# Server setup
-# ==========================================================
-
-favorites:
-  - live-db/mng_media_version: [version_id, name]
