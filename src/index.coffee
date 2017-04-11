@@ -73,8 +73,29 @@ exports.start = (cb = ->) ->
       give you an alternative way to step through your data and discover things on
       an interactive way through the data jungle.
       """
+      if setup.favorites
+        # favorite access
+        report.h3 'Favorites'
+        table = []
+        for fav in setup.favorites
+          if typeof fav is 'string'
+            [group, object, search] = fav.split '/'
+          else
+            key = Object.keys(fav)[0]
+            [group, object] = key.split '/'
+            search = fav[key]
+          search = [search] unless Array.isArray search
+          form = search.map (e) ->
+            "#{e}=<!-- @html <form action=\"/#{group}/#{object}/#{e}?\">
+            <input type=\"text\" name=\"values\"></input>
+            </form> -->"
+          .join ' '
+          table.push [group, object, form]
+        report.table table, ["Group", 'Objects', 'Access'], null, true
+      # complete index
+      report.h3 'Complete Index'
       table = []
-      for search, conf of setup
+      for search, conf of setup.object
         table.push [
           "**#{search}**"
           Object.keys(conf).length
@@ -91,7 +112,7 @@ exports.start = (cb = ->) ->
       res.status 404
       .send {error: "No file available!"}
       return
-    setup = config.get "/webobjects/#{req.params.group}"
+    setup = config.get "/webobjects/object/#{req.params.group}"
     debugAccess "INFO #{req.params.group}"
     report = new Report()
     report.h1 "Group: #{req.params.group}"
@@ -114,7 +135,7 @@ exports.start = (cb = ->) ->
 
   # class information
   app.get '/:group/:class', (req, res) ->
-    setup = config.get "/webobjects/#{req.params.group}/#{req.params.class}"
+    setup = config.get "/webobjects/object/#{req.params.group}/#{req.params.class}"
     debugAccess "INFO #{req.params.group}/#{req.params.class}"
     report = new Report()
     unless setup
@@ -141,10 +162,9 @@ exports.start = (cb = ->) ->
   # access object by identification
   app.get '/:group/:class/:search', (req, res) ->
     if req.query?.values
-      console.log encodeURI req.query.values
       return res.redirect 301, "/#{req.params.group}/#{req.params.class}/#{req.params.search}\
       /#{encodeURI req.query.values}"
-    setup = config.get "/webobjects/#{req.params.group}/#{req.params.class}"
+    setup = config.get "/webobjects/object/#{req.params.group}/#{req.params.class}"
     debugAccess "INFO #{req.params.group}/#{req.params.class}/#{req.params.search}"
     report = new Report()
     unless setup
@@ -183,7 +203,7 @@ exports.start = (cb = ->) ->
 
   # access object searches
   app.get '/:group/:object/:search/:values', (req, res) ->
-    setup = config.get "/webobjects/#{req.params.group}/#{req.params.object}"
+    setup = config.get "/webobjects/object/#{req.params.group}/#{req.params.object}"
     debugAccess "GET  #{req.params.group}/#{req.params.object}/#{req.params.search}
     = #{req.params.values}"
     report = new Report()
