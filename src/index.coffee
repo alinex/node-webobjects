@@ -183,7 +183,8 @@ exports.start = (cb = ->) ->
       to use the correct one."
       return report.format 'html', (err, html) -> res.send html
     report.h1 "#{setup.title}: #{setup.get[req.params.search].title}"
-    report.markdown setup.get[req.params.search].description if setup.get[req.params.search].description
+    if setup.get[req.params.search].description
+      report.markdown setup.get[req.params.search].description
     report.box true, 'info'
     report.raw """
       <form action="?">

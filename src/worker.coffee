@@ -77,6 +77,10 @@ class Worker
     for field of @data.row 0
       col++
       if conf = @setup.reference[field]
+        # remove details if already in record view
+        if @result is 'record' and not conf[0]?.object
+          conf = conf[1..]
+        continue unless conf.length
         # add reference
         raw = @data.data
         for row in [1..raw.length-1]
