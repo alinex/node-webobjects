@@ -134,13 +134,13 @@ exports.start = (cb = ->) ->
       res.send html
 
   # class information
-  app.get '/:group/:class', (req, res) ->
-    setup = config.get "/webobjects/object/#{req.params.group}/#{req.params.class}"
-    debugAccess "INFO #{req.params.group}/#{req.params.class}"
+  app.get '/:group/:object', (req, res) ->
+    setup = config.get "/webobjects/object/#{req.params.group}/#{req.params.object}"
+    debugAccess "INFO #{req.params.group}/#{req.params.object}"
     report = new Report()
     unless setup
-      debugAccess chalk.magenta "Unknown object #{req.params.group}/#{req.params.class}"
-      report.h1 "Object: #{req.params.group}/#{req.params.class}"
+      debugAccess chalk.magenta "Unknown object #{req.params.group}/#{req.params.object}"
+      report.h1 "Object: #{req.params.group}/#{req.params.object}"
       report.box "This object is not defined!", 'alert'
       report.markdown "See the [list of objects](/#{req.params.group}) in #{req.params.group}
       or the [list of groups](/) to use the correct one."
@@ -151,35 +151,35 @@ exports.start = (cb = ->) ->
       for search, conf of setup.get
         table.push [
           "**#{conf.title}**"
-          "`/#{req.params.group}/#{req.params.class}/#{search}/...`"
+          "`/#{req.params.group}/#{req.params.object}/#{search}/...`"
           conf.params.title
-          "[Information](/#{req.params.group}/#{req.params.class}/#{search})"
+          "[Information](/#{req.params.group}/#{req.params.object}/#{search})"
         ]
       report.table table, ["Access method", 'URL', 'Parameter', 'Info'], null, true
     report.format 'html', (err, html) ->
       res.send html
 
   # access object by identification
-  app.get '/:group/:class/:search', (req, res) ->
+  app.get '/:group/:object/:search', (req, res) ->
     if req.query?.values
-      return res.redirect 301, "/#{req.params.group}/#{req.params.class}/#{req.params.search}\
+      return res.redirect 301, "/#{req.params.group}/#{req.params.object}/#{req.params.search}\
       /#{encodeURI req.query.values}"
-    setup = config.get "/webobjects/object/#{req.params.group}/#{req.params.class}"
-    debugAccess "INFO #{req.params.group}/#{req.params.class}/#{req.params.search}"
+    setup = config.get "/webobjects/object/#{req.params.group}/#{req.params.object}"
+    debugAccess "INFO #{req.params.group}/#{req.params.object}/#{req.params.search}"
     report = new Report()
     unless setup
-      debugAccess chalk.magenta "Unknown object #{req.params.group}/#{req.params.class}"
-      report.h1 "Object: #{req.params.group}/#{req.params.class}"
+      debugAccess chalk.magenta "Unknown object #{req.params.group}/#{req.params.object}"
+      report.h1 "Object: #{req.params.group}/#{req.params.object}"
       report.box "This object is not defined!", 'alert'
       report.markdown "See the [list of objects](/#{req.params.group}) in #{req.params.group}
       or the [list of groups](/) to use the correct one."
       return report.format 'html', (err, html) -> res.send html
     unless setup.get?[req.params.search]
-      debugAccess chalk.magenta "Unknown search method #{req.params.group}/#{req.params.class}\
+      debugAccess chalk.magenta "Unknown search method #{req.params.group}/#{req.params.object}\
       /#{req.params.search}"
       report.h1 "#{setup.title}: Access by #{req.params.search}"
       report.box "This search method is not defined!", 'alert'
-      report.markdown "See the [list of methods](/#{req.params.group}/#{req.params.class})
+      report.markdown "See the [list of methods](/#{req.params.group}/#{req.params.object})
       to use the correct one."
       return report.format 'html', (err, html) -> res.send html
     report.h1 "#{setup.title}: #{setup.get[req.params.search].title}"
@@ -188,7 +188,7 @@ exports.start = (cb = ->) ->
     report.box true, 'info'
     report.raw """
       <form action="?">
-      <p>URL: /#{req.params.group}/#{req.params.class}/#{req.params.search}/
+      <p>URL: /#{req.params.group}/#{req.params.object}/#{req.params.search}/
       <input type="text" name="values"></input>
       </form>
       """, 'html'
@@ -209,18 +209,18 @@ exports.start = (cb = ->) ->
     = #{req.params.values}"
     report = new Report()
     unless setup
-      debugAccess chalk.magenta "Unknown object #{req.params.group}/#{req.params.class}"
-      report.h1 "Object: #{req.params.group}/#{req.params.class}"
+      debugAccess chalk.magenta "Unknown object #{req.params.group}/#{req.params.object}"
+      report.h1 "Object: #{req.params.group}/#{req.params.object}"
       report.box "This object is not defined!", 'alert'
       report.markdown "See the [list of objects](/#{req.params.group}) in #{req.params.group}
       or the [list of groups](/) to use the correct one."
       return report.format 'html', (err, html) -> res.send html
     unless setup.get?[req.params.search]
-      debugAccess chalk.magenta "Unknown search method #{req.params.group}/#{req.params.class}\
+      debugAccess chalk.magenta "Unknown search method #{req.params.group}/#{req.params.object}\
       /#{req.params.search}"
       report.h1 "#{setup.title}: Access by #{req.params.search}"
       report.box "This search method is not defined!", 'alert'
-      report.markdown "See the [list of methods](/#{req.params.group}/#{req.params.class})
+      report.markdown "See the [list of methods](/#{req.params.group}/#{req.params.object})
       to use the correct one."
       return report.format 'html', (err, html) -> res.send html
     worker = new Worker
@@ -247,7 +247,7 @@ exports.start = (cb = ->) ->
         report.box false
         report.pre err.stack
         report.format 'html', (err, html) -> res.send html
-        debugAccess chalk.red "GET  #{req.params.group}/#{req.params.class} -> #{err.message}"
+        debugAccess chalk.red "GET  #{req.params.group}/#{req.params.object} -> #{err.message}"
         return
       report.markdown setup.description if setup.description
       if worker.code
