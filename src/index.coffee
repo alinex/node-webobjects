@@ -8,17 +8,16 @@
 # -------------------------------------------------
 
 # include base modules
-debug = require('debug') 'webobjects'
-debugAccess = require('debug') 'webobjects:access'
+debug = require('debug') 'webobjects:access'
 chalk = require 'chalk'
 path = require 'path'
 async = require 'async'
 fs = require 'fs'
-util = require 'alinex-util'
 # express
 express = require 'express'
 helmet = require 'helmet'
 compression = require 'compression'
+basicAuth = require 'basic-auth'
 # include alinex modules
 config = require 'alinex-config'
 Database = require 'alinex-database'
@@ -58,13 +57,28 @@ exports.start = (cb = ->) ->
   app = express()
   app.use helmet()
   app.use compression()
+  app.enable 'trust proxy'
+  # basic authentication
+  app.all "/*", (req, res, next) ->
+    user = basicAuth req
+    if not(user?.name) or not(user?.pass)
+      res.set 'WWW-Authenticate', 'Basic realm=Authorization Required'
+      res.sendStatus 401
+      return
+    if config.get("/webobjects/auth/#{user.name}") is user.pass
+      req.user = user
+      next()
+    else
+      debug chalk.magenta "WARN Wrong User Authentication for #{user.name} with #{user.pass}"
+      res.set 'WWW-Authenticate', 'Basic realm=Authorization Required'
+      res.sendStatus 401
   # output version header
   app.get '/', (req, res, next) ->
     fs.readFile "#{__dirname}/../package.json", 'utf8', (err, contents) ->
       return next err if err
       pack = JSON.parse contents
       setup = config.get "/webobjects"
-      debugAccess "INFO /"
+      debug "INFO /", chalk.grey "(by #{req.user.name})"
       report = new Report()
       report.h1 "Alinex WebObjects Version #{pack.version}"
       report.markdown pack.description
@@ -113,11 +127,11 @@ exports.start = (cb = ->) ->
       .send {error: "No file available!"}
       return
     setup = config.get "/webobjects/object/#{req.params.group}"
-    debugAccess "INFO #{req.params.group}"
+    debug "INFO /#{req.params.group}", chalk.grey "(by #{req.user.name})"
     report = new Report()
     report.h1 "Group: #{req.params.group}"
     unless setup
-      debugAccess chalk.magenta "unknown group #{req.params.group}"
+      debug chalk.magenta "unknown group #{req.params.group}"
       report.box "This group is not defined!", 'alert'
       report.markdown "See the [list of groups](/) to use the correct one."
     else
@@ -136,10 +150,10 @@ exports.start = (cb = ->) ->
   # class information
   app.get '/:group/:object', (req, res) ->
     setup = config.get "/webobjects/object/#{req.params.group}/#{req.params.object}"
-    debugAccess "INFO #{req.params.group}/#{req.params.object}"
+    debug "INFO /#{req.params.group}/#{req.params.object}", chalk.grey "(by #{req.user.name})"
     report = new Report()
     unless setup
-      debugAccess chalk.magenta "Unknown object #{req.params.group}/#{req.params.object}"
+      debug chalk.magenta "Unknown object #{req.params.group}/#{req.params.object}"
       report.h1 "Object: #{req.params.group}/#{req.params.object}"
       report.box "This object is not defined!", 'alert'
       report.markdown "See the [list of objects](/#{req.params.group}) in #{req.params.group}
@@ -165,17 +179,18 @@ exports.start = (cb = ->) ->
       return res.redirect 301, "/#{req.params.group}/#{req.params.object}/#{req.params.search}\
       /#{encodeURI req.query.values}"
     setup = config.get "/webobjects/object/#{req.params.group}/#{req.params.object}"
-    debugAccess "INFO #{req.params.group}/#{req.params.object}/#{req.params.search}"
+    debug "INFO /#{req.params.group}/#{req.params.object}/#{req.params.search}",
+    chalk.grey "(by #{req.user.name})"
     report = new Report()
     unless setup
-      debugAccess chalk.magenta "Unknown object #{req.params.group}/#{req.params.object}"
+      debug chalk.magenta "Unknown object #{req.params.group}/#{req.params.object}"
       report.h1 "Object: #{req.params.group}/#{req.params.object}"
       report.box "This object is not defined!", 'alert'
       report.markdown "See the [list of objects](/#{req.params.group}) in #{req.params.group}
       or the [list of groups](/) to use the correct one."
       return report.format 'html', (err, html) -> res.send html
     unless setup.get?[req.params.search]
-      debugAccess chalk.magenta "Unknown search method #{req.params.group}/#{req.params.object}\
+      debug chalk.magenta "Unknown search method #{req.params.group}/#{req.params.object}\
       /#{req.params.search}"
       report.h1 "#{setup.title}: Access by #{req.params.search}"
       report.box "This search method is not defined!", 'alert'
@@ -205,24 +220,33 @@ exports.start = (cb = ->) ->
   # access object searches
   app.get '/:group/:object/:search/:values', (req, res) ->
     setup = config.get "/webobjects/object/#{req.params.group}/#{req.params.object}"
-    debugAccess "GET  #{req.params.group}/#{req.params.object}/#{req.params.search}
-    = #{req.params.values}"
+    debug "GET  /#{req.params.group}/#{req.params.object}/#{req.params.search}/\
+    #{req.params.values}", chalk.grey "(by #{req.user.name})"
     report = new Report()
     unless setup
-      debugAccess chalk.magenta "Unknown object #{req.params.group}/#{req.params.object}"
+      debug chalk.magenta "Unknown object #{req.params.group}/#{req.params.object}"
       report.h1 "Object: #{req.params.group}/#{req.params.object}"
       report.box "This object is not defined!", 'alert'
       report.markdown "See the [list of objects](/#{req.params.group}) in #{req.params.group}
       or the [list of groups](/) to use the correct one."
       return report.format 'html', (err, html) -> res.send html
     unless setup.get?[req.params.search]
-      debugAccess chalk.magenta "Unknown search method #{req.params.group}/#{req.params.object}\
+      debug chalk.magenta "Unknown search method #{req.params.group}/#{req.params.object}\
       /#{req.params.search}"
       report.h1 "#{setup.title}: Access by #{req.params.search}"
       report.box "This search method is not defined!", 'alert'
       report.markdown "See the [list of methods](/#{req.params.group}/#{req.params.object})
       to use the correct one."
       return report.format 'html', (err, html) -> res.send html
+    if setup.get.access
+      access = config.get "/webobjects/access/#{setup.get.access}"
+      if (access.ip and req.ip not in access.ip) or (access.user and req.user.name not in access.user)
+        report.h1 "#{setup.title}: Access Restricted to '#{setup.get.access}'"
+        report.box "You are not allowed to access here!\nUser: #{req.user.name} from #{req.ip}",
+        'alert'
+        report.markdown "See the [list of objects](/#{req.params.group})
+        to use another one."
+        return report.format 'html', (err, html) -> res.send html
     worker = new Worker
       setup: setup
       group: req.params.group
@@ -247,7 +271,7 @@ exports.start = (cb = ->) ->
         report.box false
         report.pre err.stack
         report.format 'html', (err, html) -> res.send html
-        debugAccess chalk.red "GET  #{req.params.group}/#{req.params.object} -> #{err.message}"
+        debug chalk.red "GET  #{req.params.group}/#{req.params.object} -> #{err.message}"
         return
       report.markdown setup.description if setup.description
       if worker.code
@@ -256,8 +280,8 @@ exports.start = (cb = ->) ->
         report.box true, 'info', worker.code.title
         report.code worker.code.data, worker.code.language
         report.box false
-      report.format 'html', (err, html) -> res.send html
-
+      report.format 'html', (err, html) ->
+        res.send html
   # Failure processing
   app.use logErrors
   app.use clientErrorHandler

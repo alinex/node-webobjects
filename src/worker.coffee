@@ -81,17 +81,21 @@ class Worker
         if @result is 'record' and not conf[0]?.object
           conf = conf[1..]
         continue unless conf.length
-        # add reference
+        # add references
         raw = @data.data
         for row in [1..raw.length-1]
+
           if conf.length is 1
             r = conf[0]
             object = r.object ? @object
             object = "#{@group}/#{object}" unless ~object.indexOf '/'
-            raw[row][col] = "[#{raw[row][col]}](/#{object}/#{r.search}/#{raw[row][col]}
-            \"#{r.title}\")"
+            if not conf[0]?.object
+              raw[row][col] = "[#{raw[row][col]}](/#{object}/#{r.search}/#{raw[row][col]}
+              \"#{r.title}\")"
+            else
+              raw[row][col] += "<br /><span class=\"reference\">\
+              <a href=\"/#{object}/#{r.search}/#{raw[row][col]}\">#{r.title}</a></span>"
           else
-            num = 0
             ref = conf.filter (r) =>
               # self referencing only in list
               object = r.object ? @object
@@ -101,19 +105,20 @@ class Worker
             r = ref[0]
             object = r.object ? @object
             object = "#{@group}/#{object}" unless ~object.indexOf '/'
-            firstRef = "[#{raw[row][col]}](/#{object}/#{r.search}/#{raw[row][col]}
-            \"#{r.title}\")"
+            firstRef = if ref[0]?.object then null
+            else "[#{raw[row][col]}](/#{object}/#{r.search}/#{raw[row][col]} \"#{r.title}\")"
             if @result is 'list'
-              raw[row][col] = firstRef
+              raw[row][col] = firstRef if firstRef
               continue
             # additional references only in record view
-            ref = ref[1..].map (r) =>
+            start = if firstRef then 1 else 0
+            ref = ref[start..].map (r) =>
               object = r.object ? @object
               object = "#{@group}/#{object}" unless ~object.indexOf '/'
               "<a href=\"/#{object}/#{r.search}/#{raw[row][col]}\">#{r.title}</a>"
             .join ' / '
             ref = "<span class=\"reference\">#{ref}</span>"
-            raw[row][col] = "#{firstRef}<br />#{ref}"
+            raw[row][col] = "#{firstRef ? raw[row][col]}<br />#{ref}"
     cb()
 
   output: (cb) ->
@@ -135,6 +140,8 @@ class Worker
           @report.box true, 'details', @dataTitle
           @report.pre @data
           @report.box false
+          @report.style 'container:size=auto'
+
         else
           @report.pre @data
     cb()
