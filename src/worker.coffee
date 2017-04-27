@@ -58,7 +58,8 @@ class Worker
         provider = require "./provider/#{@setup.type}"
         provider.read this, cb
       catch error
-        cb new Error "Provider type '#{@setup.type}' is not possible to read from (#{error.message})"
+        cb new Error "Provider type '#{@setup.type}' is not possible to read from
+        (#{error.message})"
 
   format: (cb) ->
     return cb() unless @setup.data

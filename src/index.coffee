@@ -240,7 +240,9 @@ exports.start = (cb = ->) ->
       return report.format 'html', (err, html) -> res.send html
     if setup.get.access
       access = config.get "/webobjects/access/#{setup.get.access}"
-      if (access.ip and req.ip not in access.ip) or (access.user and req.user.name not in access.user)
+      ipFailed = access.ip and req.ip not in access.ip
+      userFailed = access.user and req.user.name not in access.user
+      if ipFailed or userFailed
         report.h1 "#{setup.title}: Access Restricted to '#{setup.get.access}'"
         report.box "You are not allowed to access here!\nUser: #{req.user.name} from #{req.ip}",
         'alert'
