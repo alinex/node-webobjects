@@ -18,6 +18,7 @@ express = require 'express'
 helmet = require 'helmet'
 compression = require 'compression'
 basicAuth = require 'basic-auth'
+crypto = require 'crypto'
 # include alinex modules
 config = require 'alinex-config'
 Database = require 'alinex-database'
@@ -65,7 +66,8 @@ exports.start = (cb = ->) ->
       res.set 'WWW-Authenticate', 'Basic realm=Authorization Required'
       res.sendStatus 401
       return
-    if config.get("/webobjects/auth/#{user.name}") is user.pass
+    passmd5 = crypto.createHash('md5').update(user.pass).digest('hex')
+    if config.get("/webobjects/auth/#{user.name}") is passmd5
       req.user = user
       next()
     else
