@@ -5,7 +5,7 @@
 html:
   body_begin: <body>
   body_end: |+
-    <div id="footer"><a href="/">Alinex WebObjects</a> Version 1.0.0 by <em>Alexander Schilling</em></div>
+    <div id="footer"><a href="/">Alinex WebObjects</a> Version 1.0.1 by <em>Alexander Schilling</em></div>
     </body>
   style:
     - webobjects/default.css
