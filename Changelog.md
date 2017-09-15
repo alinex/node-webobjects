@@ -4,6 +4,10 @@ Version changes
 The following list gives a short overview about what is changed between
 individual versions:
 
+Version 1.1.0 (2017-09-15)
+-------------------------------------------------
+- Update some dependend packages
+
 Version 1.0.1 (2017-04-27)
 -------------------------------------------------
 - Add footer version.
